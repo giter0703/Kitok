@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f8ff" />
+    <title>키캡 오케스트라</title>
+    <script>
+      document.documentElement.dataset.screen = location.pathname.replace(/\/$/, "") === "/teacher" ? "teacher" : "student";
+      document.documentElement.dataset.compose = location.pathname.replace(/\/$/, "") === "/student/compose" ? "true" : "false";
+    </script>
+    <link rel="stylesheet" href="/static/style.css?v=low-latency-1" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="키캡 오케스트라 홈">
+          <span class="brand-mark" aria-hidden="true">♫</span>
+          <span>키캡 오케스트라</span>
+        </a>
+        <div class="connection-pill" id="connection-pill" data-state="connecting">
+          <span class="connection-dot" aria-hidden="true"></span>
+          <span id="connection-label">서버 연결 중</span>
+        </div>
+      </header>
+
+      <nav class="student-tabs" aria-label="학생 활동">
+        <button type="button" id="student-keys-tab" data-student-tab="practice" aria-controls="student-key-panel" aria-pressed="true">키 누르기 연습</button>
+        <button type="button" id="student-play-tab" aria-controls="student-play-panel" aria-pressed="false">곡 연주</button>
+        <a href="/student/compose" data-student-tab="compose">오선지 작곡·내 작품</a>
+      </nav>
+
+      <section class="welcome-card" id="student-key-panel" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <p class="eyebrow">오늘의 음악 탐험</p>
+          <h1 id="welcome-title">네 개의 버튼으로<br />나만의 소리를 찾아봐!</h1>
+          <p class="welcome-description">
+            버튼을 눌러 조합을 만들고, 화면에서 입력이 잘 들어오는지 확인해 보자.
+          </p>
+        </div>
+        <div class="music-orbit" aria-hidden="true">
+          <span class="note note-one">♪</span>
+          <span class="note note-two">♫</span>
+          <span class="orbit-disc">🎺</span>
+        </div>
+      </section>
+
+      <section class="workbench" aria-label="연주 설정과 버튼 시험">
+        <div class="instrument-panel panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">먼저 골라요</p>
+              <h2>내 악기</h2>
+            </div>
+            <span class="step-number">01</span>
+          </div>
+          <label class="field-label" for="instrument-select">악기 선택</label>
+          <select id="instrument-select" disabled>
+            <option value="">악기 목록을 불러오는 중…</option>
+          </select>
+          <p class="helper-text" id="instrument-help">
+            등록된 악기는 교사용 설정에서 관리할 수 있어요.
+          </p>
+          <button class="settings-button" id="teacher-settings" type="button" hidden>
+            <span aria-hidden="true">⚙</span> 교사 설정
+          </button>
+        </div>
+
+        <div class="input-panel panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">STICK S3 물리 버튼 연동</p>
+              <h2>가상 키캡</h2>
+            </div>
+            <span class="step-number">02</span>
+          </div>
+          <p class="panel-instruction">소리 켜기를 누른 뒤 STICK S3의 물리 버튼을 누르세요. 같은 번호의 키캡이 눌리고 운지표에 지정된 소리가 납니다. 화면 키캡을 직접 눌러 시험할 수도 있습니다.</p>
+          <div class="sound-control-row">
+            <span class="sound-status" id="sound-status" role="status">소리가 꺼져 있어요</span>
+            <button class="sound-button" id="audio-enable" type="button">🔊 소리 켜기</button>
+          </div>
+
+          <div class="arcade-buttons" role="group" aria-label="가상 아케이드 버튼">
+            <button class="arcade-button button-coral" data-key-id="button-1" type="button" aria-pressed="false">
+              <span class="button-light" aria-hidden="true"></span>
+              <span class="button-label">1</span>
+              <span class="button-key">물리 버튼 1</span>
+            </button>
+            <button class="arcade-button button-blue" data-key-id="button-2" type="button" aria-pressed="false">
+              <span class="button-light" aria-hidden="true"></span>
+              <span class="button-label">2</span>
+              <span class="button-key">물리 버튼 2</span>
+            </button>
+            <button class="arcade-button button-yellow" data-key-id="button-3" type="button" aria-pressed="false">
+              <span class="button-light" aria-hidden="true"></span>
+              <span class="button-label">3</span>
+              <span class="button-key">물리 버튼 3</span>
+            </button>
+            <button class="arcade-button button-green" data-key-id="button-4" type="button" aria-pressed="false">
+              <span class="button-light" aria-hidden="true"></span>
+              <span class="button-label">4</span>
+              <span class="button-key">물리 버튼 4</span>
+            </button>
+          </div>
+
+          <div class="combination-card">
+            <div>
+              <span class="combination-caption">지금 누른 조합</span>
+              <strong id="combination-value">쉼</strong>
+            </div>
+            <span class="combination-badge" id="combination-mask">0000</span>
+          </div>
+          <p class="input-feedback" id="input-feedback" role="status" aria-live="polite">
+            버튼을 누르면 여기에 입력 상태가 보여요.
+          </p>
+        </div>
+      </section>
+
+      <section class="practice-panel panel" id="student-play-panel" aria-labelledby="practice-title" hidden>
+        <div class="practice-heading">
+          <div>
+            <p class="eyebrow">곡 따라 연주하기</p>
+            <h2 id="practice-title">연습곡을 불러오는 중…</h2>
+            <p class="practice-description" id="practice-description">곡을 선택하면 음과 박자를 안내해요.</p>
+          </div>
+          <div class="practice-heading-actions">
+            <button class="small-add-button student-compose-open" id="student-compose-open" type="button">내 곡 만들기</button>
+            <span class="practice-song-icon" aria-hidden="true">⭐</span>
+          </div>
+        </div>
+        <label class="practice-song-picker" for="practice-song-select">연습곡 선택
+          <select id="practice-song-select" disabled>
+            <option value="">곡 목록을 불러오는 중…</option>
+          </select>
+        </label>
+        <div class="score-staff-scroll practice-staff-scroll" id="practice-staff-scroll">
+          <svg class="score-staff practice-staff" id="practice-staff" role="img" aria-label="연습곡 오선지"></svg>
+        </div>
+        <div class="practice-sequence" id="practice-sequence" aria-label="연습곡 음 순서"></div>
+        <p class="practice-next-note" id="practice-next-note" aria-live="polite">다음 음: -</p>
+        <div class="practice-current-note" id="practice-current-note" data-phase="idle">
+          <span class="practice-note-label" id="practice-progress">악기를 선택해요</span>
+          <strong id="practice-note-name">♪</strong>
+          <span id="practice-note-detail">악기를 선택하면 연주할 음을 보여줘요.</span>
+        </div>
+        <div class="practice-controls">
+          <p class="practice-status" id="practice-status" role="status" aria-live="polite">준비되면 시작을 눌러요.</p>
+          <div>
+            <button class="secondary-button" id="practice-reset" type="button">초기화</button>
+            <button class="primary-button" id="practice-start" type="button">연습 시작</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer-note">
+        <span class="footer-icon" aria-hidden="true">💡</span>
+        음원 파일을 등록하면 선택한 악기 음색으로 연주하고, 파일이 없으면 기본 전자음을 사용해요.
+      </footer>
+    </main>
+
+    <div class="modal-backdrop" id="teacher-modal" hidden>
+      <section class="teacher-dialog" role="dialog" aria-modal="true" aria-labelledby="teacher-title">
+        <header class="dialog-header">
+          <div>
+            <p class="eyebrow">교사용 설정</p>
+            <h2 id="teacher-title">악기와 연습곡 관리</h2>
+          </div>
+          <button class="close-button" id="close-settings" type="button">학생 화면 확인 ↗</button>
+        </header>
+
+        <nav class="teacher-tabs" aria-label="교사용 설정 항목">
+          <button class="teacher-tab is-active" id="teacher-tab-instruments" type="button" aria-selected="true">악기·운지표</button>
+          <button class="teacher-tab" id="teacher-tab-songs" type="button" aria-selected="false">연습곡 관리</button>
+        </nav>
+
+        <div class="teacher-layout teacher-view" id="instrument-admin-view">
+          <aside class="instrument-list-panel">
+            <div class="list-heading">
+              <h3>등록된 악기</h3>
+              <button class="small-add-button" id="new-instrument" type="button">＋ 추가</button>
+            </div>
+            <div class="instrument-admin-list" id="instrument-admin-list"></div>
+            <p class="small-help">악기 이름과 분류는 자유롭게 입력할 수 있어요.</p>
+
+            <section class="soundfont-manager" aria-labelledby="soundfont-title">
+              <h3 id="soundfont-title">악기 음원 파일</h3>
+              <p class="small-help">SF2·DLS 파일을 올리면 실제 악기 음색을 선택할 수 있어요. 파일은 최대 100MB입니다.</p>
+              <label class="file-picker-label" for="soundfont-file">음원 파일 선택</label>
+              <input id="soundfont-file" class="soundfont-file-input" type="file" accept=".sf2,.dls" />
+              <button class="small-add-button upload-soundfont-button" id="upload-soundfont" type="button">음원 등록</button>
+              <p class="form-feedback soundfont-feedback" id="soundfont-feedback" role="status" aria-live="polite"></p>
+              <div class="soundfont-list" id="soundfont-list"></div>
+            </section>
+          </aside>
+
+          <form class="instrument-form" id="instrument-form">
+            <input id="editing-instrument-id" type="hidden" />
+            <div class="form-title-row">
+              <div>
+                <h3 id="instrument-form-title">새 악기 등록</h3>
+                <p>계이름마다 서로 다른 버튼 조합을 지정해요.</p>
+              </div>
+              <span class="form-icon-preview" id="form-icon-preview">🎵</span>
+            </div>
+
+            <div class="form-grid">
+              <label>악기 이름<input id="instrument-name" maxlength="40" required placeholder="예: 트럼펫" /></label>
+              <label>분류 <span class="optional-label">선택</span><input id="instrument-family" maxlength="40" placeholder="예: 금관악기" /></label>
+              <label>아이콘
+                <select id="instrument-icon">
+                  <option value="🎵">🎵 음표</option>
+                  <option value="🎺">🎺 나팔</option>
+                  <option value="🎻">🎻 현악기</option>
+                  <option value="🎷">🎷 관악기</option>
+                  <option value="🥁">🥁 타악기</option>
+                  <option value="🪇">🪇 리듬 악기</option>
+                  <option value="🎹">🎹 건반 악기</option>
+                  <option value="🎸">🎸 현악기</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="sound-select-grid">
+              <label>악기 음원
+                <select id="soundfont-select">
+                  <option value="">기본 전자음 사용</option>
+                </select>
+              </label>
+              <label>음원 안의 음색
+                <select id="preset-select" disabled>
+                  <option value="">먼저 음원 파일을 등록하세요</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="fingering-heading">
+              <div>
+                <h4>네 버튼 운지표</h4>
+                <p>계이름은 도♯·시♭처럼 입력하고 음높이에서 샵·플랫을 골라요.</p>
+                <button class="small-add-button add-fingering-button" id="add-fingering-row" type="button">＋ 계이름 추가</button>
+              </div>
+              <div class="mini-key-labels" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span></div>
+            </div>
+            <div class="fingering-rows" id="fingering-rows"></div>
+
+            <div class="form-actions">
+              <button class="secondary-button" id="reset-instrument-form" type="button">새 악기 입력</button>
+              <button class="primary-button" id="save-instrument" type="submit">악기 저장</button>
+            </div>
+            <p class="form-feedback" id="form-feedback" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+
+        <div class="teacher-layout teacher-view" id="song-admin-view" hidden>
+          <aside class="song-list-panel">
+            <div class="list-heading">
+              <h3>등록된 연습곡</h3>
+              <button class="small-add-button" id="new-song" type="button">＋ 추가</button>
+            </div>
+            <label for="song-origin-filter">작품 보관함</label>
+            <select id="song-origin-filter">
+              <option value="all">전체 작품</option>
+              <option value="teacher">교사 작곡</option>
+              <option value="student">학생 작곡</option>
+            </select>
+            <div class="song-admin-list" id="song-admin-list"></div>
+            <p class="small-help">곡은 이 컴퓨터에 저장돼요. 계이름은 선택한 악기의 음높이와 연결돼요.</p>
+          </aside>
+
+          <div class="song-form-host" id="teacher-song-form-host">
+          <form class="song-form" id="song-form">
+            <input id="editing-song-id" type="hidden" />
+            <div class="form-title-row">
+              <div>
+                <h3 id="song-form-title">새 연습곡 등록</h3>
+                <p>곡 이름과 빠르기를 정한 뒤 음을 차례대로 추가해요.</p>
+              </div>
+              <span class="form-icon-preview">🎼</span>
+            </div>
+
+            <div class="song-form-grid">
+              <label>곡 이름<input id="song-title-input" maxlength="60" required placeholder="예: 학교종" /></label>
+              <label>빠르기 (BPM)<input id="song-bpm-input" type="number" min="40" max="200" value="80" required /></label>
+              <label>음자리표
+                <select id="song-clef-input">
+                  <option value="treble">높은음자리표</option>
+                  <option value="bass">낮은음자리표</option>
+                </select>
+              </label>
+              <label>박자표
+                <select id="song-meter-input">
+                  <option value="2/4">2/4박자</option>
+                  <option value="3/4">3/4박자</option>
+                  <option value="4/4" selected>4/4박자</option>
+                </select>
+              </label>
+              <label class="song-description-field">설명 <span class="optional-label">선택</span><input id="song-description-input" maxlength="200" placeholder="예: 첫 부분을 천천히 연습해요." /></label>
+            </div>
+
+            <section class="score-editor" aria-labelledby="score-editor-title">
+              <div class="song-notes-heading score-editor-heading">
+                <div>
+                  <h4 id="score-editor-title">오선지로 곡 만들기</h4>
+                  <p id="score-editor-summary">오선지와 음표 목록은 같은 곡에 함께 반영돼요.</p>
+                </div>
+                <button class="small-add-button" id="toggle-note-list" type="button" aria-expanded="false">목록으로 편집</button>
+              </div>
+              <label class="advanced-tools-setting"><input type="checkbox" id="advanced-tools" /> 심화 도구 사용 (16분·점음표와 쉼표)</label>
+              <div class="note-tool-palette" role="group" aria-label="추가할 음표 길이">
+                <button class="note-tool" type="button" draggable="false" data-beats="0.5" aria-label="8분음표 클릭하여 추가"><span class="note-tool-symbol">♪</span><span>8분</span></button>
+                <button class="note-tool" type="button" draggable="false" data-beats="1" aria-label="4분음표 클릭하여 추가"><span class="note-tool-symbol">♩</span><span>4분</span></button>
+                <button class="note-tool" type="button" draggable="false" data-beats="2" aria-label="2분음표 클릭하여 추가"><span class="note-tool-symbol">𝅗𝅥</span><span>2분</span></button>
+                <button class="note-tool" type="button" draggable="false" data-beats="4" aria-label="온음표 클릭하여 추가"><span class="note-tool-symbol">𝅝</span><span>온음</span></button>
+                <span class="score-toolbar-divider" aria-hidden="true"></span>
+                <button class="accidental-tool" type="button" data-accidental="#" aria-label="샵 선택">♯</button>
+                <button class="accidental-tool" type="button" data-accidental="b" aria-label="플랫 선택">♭</button>
+                <button class="accidental-tool is-selected" type="button" data-accidental="" aria-label="제자리표 선택">♮</button>
+                <button class="small-add-button" id="new-score-note" type="button">새 음 추가</button>
+                <button class="small-add-button" id="fill-measure-rests" type="button">남은 마디 쉼표로 채우기</button>
+                <button class="small-add-button remove-score-note" id="remove-score-note" type="button" disabled>선택 음 삭제</button>
+              </div>
+              <div class="score-staff-scroll" id="score-staff-scroll" aria-label="음표를 놓을 오선지">
+                <svg class="score-staff" id="score-staff" role="img" aria-label="높은음자리표 오선지"></svg>
+              </div>
+              <div class="score-preview-controls" role="group" aria-label="작곡한 곡 미리 듣기">
+                <button class="primary-button" id="preview-song" type="button">▶ 곡 미리 듣기</button>
+                <button class="secondary-button" id="stop-preview-song" type="button" disabled>정지</button>
+                <p id="song-preview-feedback" role="status" aria-live="polite">저장하기 전에 지금 만든 곡을 들어볼 수 있어요.</p>
+              </div>
+              <p class="score-editor-feedback" id="score-editor-feedback" aria-live="polite">음표·쉼표 메뉴를 클릭하면 곡 끝에 바로 추가돼요. 추가된 음을 선택한 뒤 오선지를 눌러 음높이를 바꾸고, 길이는 목록에서 바꿀 수 있어요.</p>
+            </section>
+
+            <div class="song-notes-heading song-list-editor-heading" hidden>
+              <div>
+                <h4>곡의 음표</h4>
+                <p>목록에서 바꾼 음높이와 길이는 오선지에도 바로 반영돼요.</p>
+              </div>
+              <button class="small-add-button" id="add-song-note" type="button">＋ 음 추가</button>
+            </div>
+            <div class="song-list-editor" id="song-list-editor" hidden>
+              <div class="song-note-table-header" aria-hidden="true"><span>순서</span><span>음높이</span><span>길이</span><span></span></div>
+              <div class="song-note-rows" id="song-note-rows"></div>
+            </div>
+
+            <div class="form-actions">
+              <button class="secondary-button" id="reset-song-form" type="button">새 곡 입력</button>
+              <button class="secondary-button" id="submit-student-song" type="button" hidden>선생님께 제출</button>
+              <button class="primary-button" id="save-song" type="submit">곡 저장</button>
+            </div>
+            <p class="form-feedback" id="song-form-feedback" role="status" aria-live="polite"></p>
+          </form>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop student-composer-backdrop" id="student-composer-modal" hidden>
+      <section class="teacher-dialog student-composer-dialog" role="dialog" aria-modal="true" aria-labelledby="student-composer-title">
+        <header class="dialog-header">
+          <div>
+            <p class="eyebrow">학생 작곡실</p>
+            <h2 id="student-composer-title">내 곡 만들기</h2>
+          </div>
+          <button class="close-button" id="close-student-composer" type="button">키 누르기 연습</button>
+        </header>
+        <div class="teacher-layout student-composer-layout">
+          <aside class="song-list-panel student-works-panel">
+            <h3>내 작품</h3>
+            <label class="student-nickname-field">작곡자 이름 또는 수업용 별명 (필수)
+              <input id="student-author-name" maxlength="20" required placeholder="예: 별빛 연주자" />
+            </label>
+            <p class="small-help">개인정보 대신 수업용 별명을 사용해요.</p>
+            <div class="student-song-list" id="student-song-list"></div>
+            <p class="small-help">작품은 서버에 저장되며 이 브라우저에서 내 보관함을 열 수 있어요. 제출하면 선생님이 검토한 뒤 공개할 수 있어요.</p>
+          </aside>
+          <div class="student-composer-host" id="student-composer-host"></div>
+        </div>
+      </section>
+    </div>
+    <script src="/static/app.js?v=low-latency-1" type="module"></script>
+  </body>
+</html>
