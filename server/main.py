@@ -1,16 +1,18 @@
-from __future__ import annotations
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
 
 import sqlite3
 import re
 import hashlib
 import json
 import asyncio
-from contextlib import suppress
-from server.input_bridge import InputBridge
-from contextlib import asynccontextmanager
+from contextlib import suppress, asynccontextmanager
 from datetime import datetime, timezone
-from pathlib import Path
 from uuid import uuid4
+from server.input_bridge import InputBridge
 
 from fastapi import FastAPI, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
@@ -900,3 +902,7 @@ async def game_socket(websocket: WebSocket) -> None:
 
 
 app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("server.main:app", host="127.0.0.1", port=8000, reload=True)
